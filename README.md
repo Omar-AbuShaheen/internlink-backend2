@@ -105,177 +105,96 @@ Resume uploads are handled using Multer:
 ### Users Table
 ```sql
 CREATE TABLE users (
-  id SERIAL PRIMARY KEY,
-  email VARCHAR(255) UNIQUE NOT NULL,
-  password VARCHAR(255) NOT NULL,
-  role VARCHAR(50) NOT NULL CHECK (role IN ('student', 'company', 'admin')),
-  status VARCHAR(50) DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'suspended')),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(255) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
 ### Students Table
 ```sql
 CREATE TABLE students (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-  first_name VARCHAR(100) NOT NULL,
-  last_name VARCHAR(100) NOT NULL,
-  university VARCHAR(255),
-  major VARCHAR(255),
-  graduation_year INTEGER,
-  gpa DECIMAL(3,2),
-  skills TEXT[],
-  bio TEXT,
-  resume_url TEXT,
-  resume_filename VARCHAR(255),
-  linkedin_url VARCHAR(255),
-  github_url VARCHAR(255),
-  portfolio_url VARCHAR(255),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL,
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
+    phone VARCHAR(20),
+    university VARCHAR(255),
+    major VARCHAR(255),
+    graduation_year INT,
+    resume_url VARCHAR(255),
+    profile_picture_url VARCHAR(255),
+    bio TEXT,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    resume_filename VARCHAR(255)
 );
 ```
 
 ### Companies Table
 ```sql
 CREATE TABLE companies (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-  company_name VARCHAR(255) NOT NULL,
-  industry VARCHAR(255),
-  company_size VARCHAR(50),
-  founded_year INTEGER,
-  website_url VARCHAR(255),
-  logo_url TEXT,
-  description TEXT,
-  location VARCHAR(255),
-  contact_email VARCHAR(255),
-  contact_phone VARCHAR(50),
-  linkedin_url VARCHAR(255),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL,
+    company_name VARCHAR(255),
+    industry VARCHAR(100),
+    website VARCHAR(255),
+    location VARCHAR(255),
+    company_size VARCHAR(50),
+    company_logo_url VARCHAR(255),
+    about TEXT,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
 ### Internships Table
 ```sql
 CREATE TABLE internships (
-  id SERIAL PRIMARY KEY,
-  company_id INTEGER REFERENCES companies(id) ON DELETE CASCADE,
-  title VARCHAR(255) NOT NULL,
-  description TEXT NOT NULL,
-  requirements TEXT,
-  responsibilities TEXT,
-  benefits TEXT,
-  location VARCHAR(255),
-  type VARCHAR(50) CHECK (type IN ('full-time', 'part-time', 'flexible')),
-  duration VARCHAR(50),
-  is_paid BOOLEAN DEFAULT false,
-  is_remote BOOLEAN DEFAULT false,
-  salary_range VARCHAR(100),
-  status VARCHAR(50) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'closed')),
-  deadline DATE,
-  positions_available INTEGER DEFAULT 1,
-  posted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    id SERIAL PRIMARY KEY,
+    company_id INT NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    requirements TEXT,
+    location VARCHAR(255),
+    type VARCHAR(50),
+    duration VARCHAR(50),
+    is_remote BOOLEAN DEFAULT FALSE,
+    posted_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    deadline TIMESTAMPTZ,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(50) DEFAULT 'pending'
 );
 ```
 
 ### Applications Table
 ```sql
 CREATE TABLE applications (
-  id SERIAL PRIMARY KEY,
-  internship_id INTEGER REFERENCES internships(id) ON DELETE CASCADE,
-  student_id INTEGER REFERENCES students(id) ON DELETE CASCADE,
-  status VARCHAR(50) DEFAULT 'pending' CHECK (status IN ('pending', 'reviewed', 'shortlisted', 'rejected', 'accepted')),
-  cover_letter TEXT,
-  resume_url TEXT,
-  resume_filename VARCHAR(255),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(internship_id, student_id)
-);
-```
-
-### Skills Table
-```sql
-CREATE TABLE skills (
-  id SERIAL PRIMARY KEY,
-  name VARCHAR(100) UNIQUE NOT NULL,
-  category VARCHAR(50),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-### Student_Skills Table (Junction Table)
-```sql
-CREATE TABLE student_skills (
-  student_id INTEGER REFERENCES students(id) ON DELETE CASCADE,
-  skill_id INTEGER REFERENCES skills(id) ON DELETE CASCADE,
-  proficiency_level VARCHAR(50) CHECK (proficiency_level IN ('beginner', 'intermediate', 'advanced', 'expert')),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (student_id, skill_id)
-);
-```
-
-### Internship_Skills Table (Junction Table)
-```sql
-CREATE TABLE internship_skills (
-  internship_id INTEGER REFERENCES internships(id) ON DELETE CASCADE,
-  skill_id INTEGER REFERENCES skills(id) ON DELETE CASCADE,
-  is_required BOOLEAN DEFAULT true,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (internship_id, skill_id)
-);
-```
-
-### Notifications Table
-```sql
-CREATE TABLE notifications (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-  title VARCHAR(255) NOT NULL,
-  message TEXT NOT NULL,
-  type VARCHAR(50) CHECK (type IN ('application_update', 'profile_update', 'system_message')),
-  is_read BOOLEAN DEFAULT false,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-### Reviews Table
-```sql
-CREATE TABLE reviews (
-  id SERIAL PRIMARY KEY,
-  company_id INTEGER REFERENCES companies(id) ON DELETE CASCADE,
-  student_id INTEGER REFERENCES students(id) ON DELETE CASCADE,
-  internship_id INTEGER REFERENCES internships(id) ON DELETE CASCADE,
-  rating INTEGER CHECK (rating >= 1 AND rating <= 5),
-  review_text TEXT,
-  is_anonymous BOOLEAN DEFAULT false,
-  status VARCHAR(50) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(student_id, internship_id)
+    id SERIAL PRIMARY KEY,
+    internship_id INT NOT NULL,
+    student_id INT NOT NULL,
+    status VARCHAR(50) DEFAULT 'pending',
+    cover_letter TEXT,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
 ### Important Database Relationships:
 
 1. One-to-One:
-   - User -> Student/Company (through user_id)
+   - User -> Student (through user_id)
+   - User -> Company (through user_id)
 
 2. One-to-Many:
    - Company -> Internships
    - Internship -> Applications
-   - User -> Notifications
+   - Student -> Applications
 
-3. Many-to-Many:
-   - Students <-> Skills (through student_skills)
-   - Internships <-> Skills (through internship_skills)
-
-### Indexes for Performance:
+### Recommended Indexes:
 ```sql
 -- Users table indexes
 CREATE INDEX idx_users_email ON users(email);
@@ -290,14 +209,6 @@ CREATE INDEX idx_applications_status ON applications(status);
 CREATE INDEX idx_internships_company ON internships(company_id);
 CREATE INDEX idx_internships_status ON internships(status);
 CREATE INDEX idx_internships_deadline ON internships(deadline);
-
--- Skills table indexes
-CREATE INDEX idx_skills_name ON skills(name);
-CREATE INDEX idx_skills_category ON skills(category);
-
--- Notifications table indexes
-CREATE INDEX idx_notifications_user ON notifications(user_id);
-CREATE INDEX idx_notifications_read ON notifications(is_read);
 ```
 
 ## 🧪 Error Handling
